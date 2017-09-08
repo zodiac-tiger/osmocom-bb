@@ -1325,6 +1325,7 @@ static void config_write_ms(struct vty *vty, struct osmocom_ms *ms)
 	vty_out(vty, " layer2-socket %s%s", set->layer2_socket_path,
 		VTY_NEWLINE);
 	vty_out(vty, " sap-socket %s%s", set->sap_socket_path, VTY_NEWLINE);
+	vty_out(vty, " mncc-socket %s%s", set->mncc_socket_path, VTY_NEWLINE);
 	switch(set->sim_type) {
 		case GSM_SIM_TYPE_NONE:
 		vty_out(vty, " sim none%s", VTY_NEWLINE);
@@ -1594,6 +1595,20 @@ DEFUN(cfg_ms_sap, cfg_ms_sap_cmd, "sap-socket PATH",
 
 	strncpy(set->sap_socket_path, argv[0],
 		sizeof(set->sap_socket_path) - 1);
+
+	vty_restart(vty, ms);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_ms_mncc, cfg_ms_mncc_cmd, "mncc-socket PATH",
+	"Define socket path for MNCC interface\n"
+	"Unix socket, default '/tmp/ms_mncc.<ms_name>'")
+{
+	struct osmocom_ms *ms = vty->index;
+	struct gsm_settings *set = &ms->settings;
+
+	strncpy(set->mncc_socket_path, argv[0],
+		sizeof(set->mncc_socket_path) - 1);
 
 	vty_restart(vty, ms);
 	return CMD_SUCCESS;
@@ -2851,6 +2866,7 @@ int ms_vty_init(void)
 	install_element(MS_NODE, &cfg_ms_show_this_cmd);
 	install_element(MS_NODE, &cfg_ms_layer2_cmd);
 	install_element(MS_NODE, &cfg_ms_sap_cmd);
+	install_element(MS_NODE, &cfg_ms_mncc_cmd);
 	install_element(MS_NODE, &cfg_ms_sim_cmd);
 	install_element(MS_NODE, &cfg_ms_mode_cmd);
 	install_element(MS_NODE, &cfg_ms_imei_cmd);
