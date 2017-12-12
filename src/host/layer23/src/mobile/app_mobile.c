@@ -37,6 +37,7 @@
 #include <osmocom/bb/mobile/app_mobile.h>
 #include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
+#include <osmocom/bb/mobile/gapk_io.h>
 #include <osmocom/bb/mobile/primitives.h>
 #include <osmocom/bb/common/sap_interface.h>
 #include <osmocom/vty/logging.h>
@@ -74,6 +75,7 @@ int mobile_work(struct osmocom_ms *ms)
 		w |= gsm322_cs_dequeue(ms);
 		w |= gsm_sim_job_dequeue(ms);
 		w |= mncc_dequeue(ms);
+		w |= gapk_io_dequeue(ms);
 		if (w)
 			work = 1;
 	} while (w);
@@ -158,6 +160,9 @@ int mobile_exit(struct osmocom_ms *ms, int force)
 		return -EBUSY;
 	}
 
+	/* HACK: clean up GAPK state */
+	gapk_io_clean_up_ms(ms);
+
 	gsm322_exit(ms);
 	gsm48_mm_exit(ms);
 	gsm48_rr_exit(ms);
@@ -199,6 +204,10 @@ static int mobile_init(struct osmocom_ms *ms)
 
 	/* init SAP client before SIM card starts up */
 	osmosap_init(ms);
+
+	/* HACK: init GAPK state for this MS */
+	if (ms->settings.audio.io_target == AUDIO_IO_GAPK)
+		gapk_io_init_ms(ms, CODEC_FR);
 
 	gsm_sim_init(ms);
 	gsm48_cc_init(ms);
@@ -450,6 +459,9 @@ int l23_app_init(const char *config_file,
 	int rc = 0;
 
 	osmo_gps_init();
+
+	/* Init GAPK audio I/O */
+	gapk_io_init(l23_ctx);
 
 	vty_info.tall_ctx = l23_ctx;
 	vty_init(&vty_info);
